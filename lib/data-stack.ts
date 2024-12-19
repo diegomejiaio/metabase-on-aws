@@ -37,6 +37,11 @@ export class DataStack extends cdk.Stack {
             }),
             vpc: props.vpc,
             credentials: rds.Credentials.fromSecret(dbCredentialsSecret),
+            scaling: {
+                autoPause: cdk.Duration.minutes(5), // Auto pause after 10 minutes of inactivity
+                minCapacity: rds.AuroraCapacityUnit.ACU_2, // Minimum capacity
+                maxCapacity: rds.AuroraCapacityUnit.ACU_2, // Maximum capacity
+            },
             defaultDatabaseName: "metabase",
             removalPolicy: cdk.RemovalPolicy.DESTROY,
         });
