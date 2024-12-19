@@ -5,6 +5,7 @@ import * as iam from "aws-cdk-lib/aws-iam";
 
 interface ComputeStackProps extends cdk.StackProps {
     vpc: ec2.Vpc;
+    metabaseVersion: string; // Parámetro para manejar versiones
 }
 
 export class ComputeStack extends cdk.Stack {
@@ -57,7 +58,6 @@ export class ComputeStack extends cdk.Stack {
         const subnetId = subnets[0]; // Usa la primera subred pública
 
         // 4. Script de Datos de Usuario para Instalar y Ejecutar Metabase
-        const METABASE_VERSION = "v0.51.8";
         const userDataScript = ec2.UserData.forLinux();
         userDataScript.addCommands(
             "yum update -y",
@@ -79,7 +79,7 @@ export class ComputeStack extends cdk.Stack {
             "EOF",
             "chown ec2-user:ec2-user /home/ec2-user/metabase.env",
             "chmod 600 /home/ec2-user/metabase.env",
-            `wget https://downloads.metabase.com/${METABASE_VERSION}/metabase.jar -O /home/ec2-user/metabase.jar`,
+            `wget https://downloads.metabase.com/${props.metabaseVersion}/metabase.jar -O /home/ec2-user/metabase.jar`,
             "chown ec2-user:ec2-user /home/ec2-user/metabase.jar",
             "chmod 755 /home/ec2-user/metabase.jar",
             "cat << EOF > /etc/systemd/system/metabase.service",
@@ -108,7 +108,7 @@ export class ComputeStack extends cdk.Stack {
                     generation: ec2.AmazonLinuxGeneration.AMAZON_LINUX_2,
                     cpuType: ec2.AmazonLinuxCpuType.ARM_64,
                 }).getImage(this).imageId,
-                keyName: "diego-mac-keys", // Clave SSH
+                keyName: "diego-mac-keys", // Clave SSH, cambiala por la tuya
                 iamInstanceProfile: {
                     name: new iam.CfnInstanceProfile(this, "InstanceProfile", {
                         roles: [instanceRole.roleName],

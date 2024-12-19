@@ -19,6 +19,7 @@ export class MetabaseOnAwsStack extends cdk.Stack {
         // 3. Crear la pila de cómputo (EC2 Spot para Metabase)
         const computeStack = new ComputeStack(this, "ComputeStack", {
             vpc: networkingStack.vpc,
+            metabaseVersion: "v0.51.9", // Nueva versión
         });
 
         // Definir la dependencia explícita: ComputeStack depende de DataStack
