@@ -1,26 +1,24 @@
 # Metabase on AWS CDK
 
-This project deploys Metabase Open Source in a cost-effective way on AWS using CDK (Cloud Development Kit) with TypeScript.
+This project provides a low-cost solution to deploy Metabase Open Source on AWS using the Cloud Development Kit (CDK) with TypeScript. It is designed to be scalable, cost-effective, and easy to manage, leveraging AWS services like Aurora Serverless and Spot Instances.
 
 ## Architecture
 
 The infrastructure consists of:
 
-- **Compute Layer**: Single EC2 t4g.medium Spot Instance running Metabase
-- **Database Layer**: Aurora Serverless v1 PostgreSQL
+![Architecture AWS](arch-metabase-cdk.jpg)
+
+- **Compute Layer**: Single EC2 t4g.micro Instance running Metabase
+- **Database Layer**: Aurora Serverless v2 PostgreSQL
 - **Networking**: VPC with public and private subnets in 2 AZs
 
-### Cost Optimization Features
-- Uses ARM-based EC2 Spot instances (t4g.medium) for cost savings
-- Aurora Serverless auto-scaling (2-2 ACU) with auto-pause after 10 minutes
-- Estimated monthly cost: ~$30-40 USD (may vary by region and usage)
 
 ## Prerequisites
 
-- AWS CLI configured
-- Node.js >= 14.x
-- AWS CDK CLI installed (`npm install -g aws-cdk`)
-- SSH key pair in your AWS account named 'diego-mac-keys' (or modify the key name in compute-stack.ts)
+- **AWS CLI** configured with appropriate permissions.
+- **Node.js** version >= 14.x installed.
+- **AWS CDK CLI** installed globally (`npm install -g aws-cdk`).
+- An existing SSH key pair in your AWS account named `diego-mac-keys` (or modify the key name in `compute-stack.ts`).
 
 ## Stack Components
 
@@ -30,3 +28,7 @@ The infrastructure consists of:
 
 ## Deployment
 
+## Future Improvements
+- Add a load balancer for high availability.
+- Add an autoscaling group for EC2.
+- Integrate with S3 for storing Metabase data backups.
