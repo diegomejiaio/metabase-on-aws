@@ -57,30 +57,48 @@ export class ComputeStack extends cdk.Stack {
         const userDataScript = ec2.UserData.forLinux();
         userDataScript.addCommands(
             'yum update -y',
-            // Extraer valores desde Secrets Manager y configurarlos como variables de entorno
+            'yum install -y aws-cli jq java-17-amazon-corretto-headless postgresql15',
+            
+            // Set AWS region
+            'export AWS_DEFAULT_REGION=us-east-1',
+            
+            // Get database credentials from Secrets Manager
             `DB_SECRET=$(aws secretsmanager get-secret-value --secret-id ${props.dbCredentialsSecret.secretName} --query 'SecretString' --output text)`,
-            `DB_PASS=$(echo $DB_SECRET | jq -r '.password')`,
-            `DB_HOST=$(echo $DB_SECRET | jq -r '.host')`,
-            `DB_PORT=$(echo $DB_SECRET | jq -r '.port')`,
-            `DB_USER=$(echo $DB_SECRET | jq -r '.username')`,
-            `DB_NAME=$(echo $DB_SECRET | jq -r '.dbname')`,
-            // Validar que se obtuvieron todos los valores
-            `if [ -z "$DB_PASS" ] || [ -z "$DB_HOST" ] || [ -z "$DB_PORT" ] || [ -z "$DB_USER" ] || [ -z "$DB_NAME" ]; then echo "Error: No se pudo obtener toda la información del secreto" >&2; exit 1; fi`,
-            `echo "export MB_DB_PASS=$DB_PASS" >> /etc/environment`,
-            `echo "export MB_DB_TYPE=postgres" >> /etc/environment`,
-            `echo "export MB_DB_HOST=$DB_HOST" >> /etc/environment`,
-            `echo "export MB_DB_PORT=$DB_PORT" >> /etc/environment`,
-            `echo "export MB_DB_USER=$DB_USER" >> /etc/environment`,
-            `echo "export MB_DB_NAME=$DB_NAME" >> /etc/environment`,
-            // Iniciar Metabase automáticamente
-            'yum install -y aws-cli jq java-17-amazon-corretto-headless',
+            'export DB_HOST=$(echo $DB_SECRET | jq -r \'.host\')',
+            'export DB_PORT=$(echo $DB_SECRET | jq -r \'.port\')',
+            'export DB_USER=$(echo $DB_SECRET | jq -r \'.username\')',
+            'export DB_PASS=$(echo $DB_SECRET | jq -r \'.password\')',
+            'export DB_NAME=$(echo $DB_SECRET | jq -r \'.dbname\')',
+            
+            // Create systemd service file for Metabase
+            'cat << EOF > /etc/systemd/system/metabase.service',
+            '[Unit]',
+            'Description=Metabase application service',
+            'After=network.target',
+            '',
+            '[Service]',
+            'Type=simple',
+            'User=ec2-user',
+            'Environment=MB_DB_TYPE=postgres',
+            'Environment="MB_DB_CONNECTION_URI=jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}"',
+            'Environment=MB_DB_USER=${DB_USER}',
+            'Environment=MB_DB_PASS=${DB_PASS}',
+            'ExecStart=/usr/bin/java --add-opens java.base/java.nio=ALL-UNNAMED -jar /home/ec2-user/metabase.jar',
+            'Restart=always',
+            '',
+            '[Install]',
+            'WantedBy=multi-user.target',
+            'EOF',
+            
+            // Download and configure Metabase
             `wget https://downloads.metabase.com/${METABASE_VERSION}/metabase.jar -O /home/ec2-user/metabase.jar`,
             'chown ec2-user:ec2-user /home/ec2-user/metabase.jar',
-            // Configurar la región de AWS
-            `export AWS_DEFAULT_REGION=us-east-1`,
-            `echo "java -jar /home/ec2-user/metabase.jar" > /etc/rc.local`,
-            'chmod +x /etc/rc.local',
-            '/etc/rc.local'
+            'chmod 755 /home/ec2-user/metabase.jar',
+            
+            // Enable and start Metabase service
+            'systemctl daemon-reload',
+            'systemctl enable metabase',
+            'systemctl start metabase'
         );
 
         // 5. Launch Template para la Instancia EC2
