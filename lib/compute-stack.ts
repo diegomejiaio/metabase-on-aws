@@ -103,7 +103,7 @@ export class ComputeStack extends cdk.Stack {
         // 5. Launch Template for the EC2 Instance
         const launchTemplate = new ec2.CfnLaunchTemplate(this, "MetabaseLaunchTemplate", {
             launchTemplateData: {
-                instanceType: "t4g.medium",
+                instanceType: "t4g.micro",
                 imageId: new ec2.AmazonLinuxImage({
                     generation: ec2.AmazonLinuxGeneration.AMAZON_LINUX_2,
                     cpuType: ec2.AmazonLinuxCpuType.ARM_64,
@@ -115,12 +115,13 @@ export class ComputeStack extends cdk.Stack {
                     }).ref,
                 },
                 securityGroupIds: [instanceSecurityGroup.securityGroupId],
-                instanceMarketOptions: {
-                    marketType: "spot",
-                    spotOptions: {
-                        maxPrice: "0.015",
-                    },
-                },
+                // Para instancias Spot
+                // instanceMarketOptions: {
+                //     marketType: "spot",
+                //     spotOptions: {
+                //         maxPrice: "0.015",
+                //     },
+                // },
                 userData: cdk.Fn.base64(userDataScript.render()),
             },
         });
