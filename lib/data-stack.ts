@@ -9,14 +9,10 @@ interface DataStackProps extends cdk.StackProps {
 }
 
 export class DataStack extends cdk.Stack {
-    public readonly dbCluster: rds.ServerlessCluster;
-    public readonly dbCredentialsSecret: secretsmanager.Secret;
-
     constructor(scope: Construct, id: string, props: DataStackProps) {
         super(scope, id, props);
 
-        // Crear un secreto para las credenciales de la base de datos
-        this.dbCredentialsSecret = new secretsmanager.Secret(
+        const dbCredentialsSecret = new secretsmanager.Secret(
             this,
             "DBCredentialsSecret",
             {
@@ -35,30 +31,30 @@ export class DataStack extends cdk.Stack {
             }
         );
 
-        const parameterGroup = new rds.ParameterGroup(this, "AuroraServerlessParamGroup", {
+        const dbCluster = new rds.ServerlessCluster(this, "AuroraServerlessCluster", {
             engine: rds.DatabaseClusterEngine.auroraPostgres({
                 version: rds.AuroraPostgresEngineVersion.VER_13_12,
             }),
-            parameters: {
-                "rds.force_ssl": "1", // Ejemplo de configuración
-            },
-        });
-        // Crear la base de datos Aurora Serverless
-        this.dbCluster = new rds.ServerlessCluster(this, "AuroraServerlessCluster", {
-            engine: rds.DatabaseClusterEngine.auroraPostgres({
-                version: rds.AuroraPostgresEngineVersion.VER_13_12, // Usa la versión compatible
-            }),
             vpc: props.vpc,
-            credentials: rds.Credentials.fromSecret(this.dbCredentialsSecret),
+            credentials: rds.Credentials.fromSecret(dbCredentialsSecret),
             defaultDatabaseName: "metabase",
-            parameterGroup, // Asignar el grupo de parámetros
-            scaling: {
-                autoPause: cdk.Duration.minutes(10),
-                minCapacity: rds.AuroraCapacityUnit.ACU_2,
-                maxCapacity: rds.AuroraCapacityUnit.ACU_2,
-            },
             removalPolicy: cdk.RemovalPolicy.DESTROY,
         });
-        
+
+        // Exporta los valores necesarios
+        new cdk.CfnOutput(this, "DBClusterArn", {
+            value: dbCluster.clusterArn,
+            exportName: "DBClusterArn",
+        });
+
+        new cdk.CfnOutput(this, "DBSecretArn", {
+            value: dbCredentialsSecret.secretArn, // Exporta el ARN del secreto
+            exportName: "DBSecretArn", // Nombre exacto para el export
+        });
+
+        new cdk.CfnOutput(this, "DBSecurityGroupId", {
+            value: dbCluster.connections.securityGroups[0].securityGroupId,
+            exportName: "DBSecurityGroupId",
+        });
     }
 }
