@@ -36,14 +36,16 @@ export class DataStack extends cdk.Stack {
             this,
             "AuroraServerlessCluster",
             {
-                engine: rds.DatabaseClusterEngine.AURORA_POSTGRESQL,
+                engine: rds.DatabaseClusterEngine.auroraPostgres({
+                    version: rds.AuroraPostgresEngineVersion.VER_17_2,
+                }),
                 vpc: props.vpc,
                 credentials: rds.Credentials.fromSecret(this.dbCredentialsSecret),
                 defaultDatabaseName: "metabase",
                 scaling: {
                     autoPause: cdk.Duration.minutes(10),
-                    minCapacity: 1,
-                    maxCapacity: 2,
+                    minCapacity: rds.AuroraCapacityUnit.ACU_1,
+                    maxCapacity: rds.AuroraCapacityUnit.ACU_1,
                 },
                 removalPolicy: cdk.RemovalPolicy.DESTROY,
             }
