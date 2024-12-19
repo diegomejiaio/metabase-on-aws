@@ -28,6 +28,36 @@ The infrastructure consists of:
 
 ## Deployment
 
+1. **Clone the Repository**:
+   ```bash
+   git clone https://github.com/your-repo/metabase-on-aws-cdk.git
+   cd metabase-on-aws-cdk
+   ```
+
+2. **Install Dependencies**:
+   ```bash
+   npm install
+   ```
+
+3. **Bootstrap the Environment**:
+   ```bash
+   cdk bootstrap
+   ```
+
+4. **Deploy the Stacks**:
+   ```bash
+   cdk deploy
+   ```
+
+   Deploy stacks in the following order if deploying individually:
+   - `NetworkingStack`
+   - `DataStack`
+   - `ComputeStack`
+
+5. **Access Metabase**:
+   - Retrieve the public IP address of the EC2 instance from the output of the `ComputeStack`.
+   - Open your browser and navigate to `http://<PublicIP>:3000`.
+
 ## Future Improvements
 - Add a load balancer for high availability.
 - Add an autoscaling group for EC2.
