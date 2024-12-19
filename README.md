@@ -30,7 +30,7 @@ The infrastructure consists of:
 
 1. **Clone the Repository**:
    ```bash
-   git clone https://github.com/your-repo/metabase-on-aws-cdk.git
+   git clone https://github.com/diegomejiaio/metabase-on-aws
    cd metabase-on-aws-cdk
    ```
 
