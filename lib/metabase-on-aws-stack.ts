@@ -8,21 +8,21 @@ export class MetabaseOnAwsStack extends cdk.Stack {
     constructor(scope: Construct, id: string, props?: cdk.StackProps) {
         super(scope, id, props);
 
-        // 1. Crear la pila de red (VPC y subredes)
+        // 1. Create the networking stack
         const networkingStack = new NetworkingStack(this, "NetworkingStack");
 
-        // 2. Crear la pila de datos (Aurora Serverless)
+        // 2. Create the data stack
         const dataStack = new DataStack(this, "DataStack", {
             vpc: networkingStack.vpc,
         });
 
-        // 3. Crear la pila de cómputo (EC2 Spot para Metabase)
+        // 3. Create the compute stack (Metabase app ec2 spot instance)
         const computeStack = new ComputeStack(this, "ComputeStack", {
             vpc: networkingStack.vpc,
             metabaseVersion: "v0.51.8", // Nueva versión
         });
 
-        // Definir la dependencia explícita: ComputeStack depende de DataStack
+        // Define explicit dependency between stacks
         computeStack.addDependency(dataStack);
     }
 }

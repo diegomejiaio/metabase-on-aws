@@ -8,7 +8,7 @@ export class NetworkingStack extends cdk.Stack {
     constructor(scope: Construct, id: string, props?: cdk.StackProps) {
         super(scope, id, props);
 
-        // Crear una VPC con 2 zonas de disponibilidad
+        // Create a VPC with 2 AZs
         this.vpc = new ec2.Vpc(this, 'MetabaseVpc', {
             maxAzs: 2,
         });

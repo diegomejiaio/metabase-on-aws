@@ -12,11 +12,11 @@ export class ComputeStack extends cdk.Stack {
     constructor(scope: Construct, id: string, props: ComputeStackProps) {
         super(scope, id, props);
 
-        // Importar valores del DataStack
+        // Import the Security Group and Secret ARN from the Database Stack
         const dbSecurityGroupId = cdk.Fn.importValue("DBSecurityGroupId");
         const dbSecretArn = cdk.Fn.importValue("DBSecretArn");
 
-        // 1. Grupo de Seguridad para la instancia EC2
+        // 1. Create a Security Group for the EC2 Instance
         const instanceSecurityGroup = new ec2.SecurityGroup(this, "InstanceSecurityGroup", {
             vpc: props.vpc,
             description: "Allow HTTP access to Metabase",
@@ -25,11 +25,11 @@ export class ComputeStack extends cdk.Stack {
 
         instanceSecurityGroup.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(3000), "Allow HTTP to Metabase");
 
-        // Asignar regla de ingreso para Aurora desde la EC2
+        // Asign the Security Group to the imported DB Security Group
         const dbSecurityGroup = ec2.SecurityGroup.fromSecurityGroupId(this, "ImportedDBSecurityGroup", dbSecurityGroupId);
         dbSecurityGroup.addIngressRule(instanceSecurityGroup, ec2.Port.tcp(5432), "Allow EC2 to connect to Aurora");
 
-        // 2. Rol IAM para la instancia EC2
+        // 2. Define an IAM Role for the EC2 Instance
         const instanceRole = new iam.Role(this, "InstanceRole", {
             assumedBy: new iam.ServicePrincipal("ec2.amazonaws.com"),
             managedPolicies: [
@@ -50,14 +50,14 @@ export class ComputeStack extends cdk.Stack {
             },
         });
 
-        // 3. Seleccionar una Subred Válida de la VPC
+        // 3. Choose a Public Subnet for the EC2 Instance
         const subnets = props.vpc.selectSubnets({
             subnetType: ec2.SubnetType.PUBLIC,
         }).subnetIds;
 
-        const subnetId = subnets[0]; // Usa la primera subred pública
+        const subnetId = subnets[0]; // Use the first public subnet
 
-        // 4. Script de Datos de Usuario para Instalar y Ejecutar Metabase
+        // 4. Script for the VM to install Metabase and connect to the DB
         const userDataScript = ec2.UserData.forLinux();
         userDataScript.addCommands(
             "yum update -y",
@@ -100,7 +100,7 @@ export class ComputeStack extends cdk.Stack {
             "systemctl start metabase"
         );
 
-        // 5. Launch Template para la Instancia EC2
+        // 5. Launch Template for the EC2 Instance
         const launchTemplate = new ec2.CfnLaunchTemplate(this, "MetabaseLaunchTemplate", {
             launchTemplateData: {
                 instanceType: "t4g.medium",
@@ -125,7 +125,7 @@ export class ComputeStack extends cdk.Stack {
             },
         });
 
-        // 6. Crear la Instancia EC2 en una Subred Correcta
+        // 6. Crate the Spot Instance
         const spotInstance = new ec2.CfnInstance(this, "MetabaseSpotInstance", {
             launchTemplate: {
                 launchTemplateId: launchTemplate.ref,
@@ -134,7 +134,7 @@ export class ComputeStack extends cdk.Stack {
             subnetId: subnetId,
         });
 
-        // 7. Salida con la IP Pública
+        // 7. Export the Public IP Address Output
         new cdk.CfnOutput(this, "InstancePublicIP", {
             value: spotInstance.attrPublicIp,
             description: "Dirección IP pública de la instancia Spot",
