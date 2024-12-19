@@ -31,24 +31,30 @@ export class DataStack extends cdk.Stack {
             
         );
 
+        const parameterGroup = new rds.ParameterGroup(this, "AuroraServerlessParamGroup", {
+            engine: rds.DatabaseClusterEngine.auroraPostgres({
+                version: rds.AuroraPostgresEngineVersion.VER_13_12,
+            }),
+            parameters: {
+                "rds.force_ssl": "1", // Ejemplo de configuración
+            },
+        });
         // Crear la base de datos Aurora Serverless
-        this.dbCluster = new rds.ServerlessCluster(
-            this,
-            "AuroraServerlessCluster",
-            {
-                engine: rds.DatabaseClusterEngine.auroraPostgres({
-                    version: rds.AuroraPostgresEngineVersion.VER_17_2,
-                }),
-                vpc: props.vpc,
-                credentials: rds.Credentials.fromSecret(this.dbCredentialsSecret),
-                defaultDatabaseName: "metabase",
-                scaling: {
-                    autoPause: cdk.Duration.minutes(10),
-                    minCapacity: rds.AuroraCapacityUnit.ACU_1,
-                    maxCapacity: rds.AuroraCapacityUnit.ACU_1,
-                },
-                removalPolicy: cdk.RemovalPolicy.DESTROY,
-            }
-        );
+        this.dbCluster = new rds.ServerlessCluster(this, "AuroraServerlessCluster", {
+            engine: rds.DatabaseClusterEngine.auroraPostgres({
+                version: rds.AuroraPostgresEngineVersion.VER_13_12, // Usa la versión compatible
+            }),
+            vpc: props.vpc,
+            credentials: rds.Credentials.fromSecret(this.dbCredentialsSecret),
+            defaultDatabaseName: "metabase",
+            parameterGroup, // Asignar el grupo de parámetros
+            scaling: {
+                autoPause: cdk.Duration.minutes(10),
+                minCapacity: rds.AuroraCapacityUnit.ACU_2,
+                maxCapacity: rds.AuroraCapacityUnit.ACU_2,
+            },
+            removalPolicy: cdk.RemovalPolicy.DESTROY,
+        });
+        
     }
 }

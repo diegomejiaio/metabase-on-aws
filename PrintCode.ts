@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 const directoryPath = path.join(__dirname, 'lib');
-const outputPath = path.join(__dirname, 'fileListWithContent.txt');
+const outputPath = path.join(__dirname, 'codeForAI.txt');
 
 fs.readdir(directoryPath, (err, files) => {
     if (err) {
