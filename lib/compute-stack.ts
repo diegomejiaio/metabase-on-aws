@@ -52,25 +52,40 @@ export class ComputeStack extends cdk.Stack {
 
         const subnetId = subnets[0]; // Usa la primera subred pública
 
+        const dbSecurityGroup = props.dbCluster.connections.securityGroups[0];
+        dbSecurityGroup.addIngressRule(instanceSecurityGroup, ec2.Port.tcp(5432), 'Permitir acceso desde la instancia EC2 a Aurora');
+
         // 4. Script de Datos de Usuario para Instalar y Ejecutar Metabase
         const METABASE_VERSION = 'v0.51.8';
         const userDataScript = ec2.UserData.forLinux();
         userDataScript.addCommands(
             'yum update -y',
             'yum install -y aws-cli jq java-17-amazon-corretto-headless postgresql15',
-            
-            // Set AWS region
+
             'export AWS_DEFAULT_REGION=us-east-1',
-            
-            // Get database credentials from Secrets Manager
+
+            // Obtener credenciales desde Secrets Manager
             `DB_SECRET=$(aws secretsmanager get-secret-value --secret-id ${props.dbCredentialsSecret.secretName} --query 'SecretString' --output text)`,
             'export DB_HOST=$(echo $DB_SECRET | jq -r \'.host\')',
             'export DB_PORT=$(echo $DB_SECRET | jq -r \'.port\')',
             'export DB_USER=$(echo $DB_SECRET | jq -r \'.username\')',
             'export DB_PASS=$(echo $DB_SECRET | jq -r \'.password\')',
             'export DB_NAME=$(echo $DB_SECRET | jq -r \'.dbname\')',
-            
-            // Create systemd service file for Metabase
+
+            // Crear archivo de entorno para Metabase
+            'cat << EOF > /home/ec2-user/metabase.env',
+            'MB_DB_TYPE=postgres',
+            'MB_DB_DBNAME=$DB_NAME',
+            'MB_DB_USER=$DB_USER',
+            'MB_DB_PASS=$DB_PASS',
+            'MB_DB_HOST=$DB_HOST',
+            'MB_DB_PORT=$DB_PORT',
+            'EOF',
+
+            'chown ec2-user:ec2-user /home/ec2-user/metabase.env',
+            'chmod 600 /home/ec2-user/metabase.env',
+
+            // Crear el servicio systemd sin variables embebidas directamente
             'cat << EOF > /etc/systemd/system/metabase.service',
             '[Unit]',
             'Description=Metabase application service',
@@ -79,23 +94,20 @@ export class ComputeStack extends cdk.Stack {
             '[Service]',
             'Type=simple',
             'User=ec2-user',
-            'Environment=MB_DB_TYPE=postgres',
-            'Environment="MB_DB_CONNECTION_URI=jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}"',
-            'Environment=MB_DB_USER=${DB_USER}',
-            'Environment=MB_DB_PASS=${DB_PASS}',
+            'EnvironmentFile=/home/ec2-user/metabase.env',
             'ExecStart=/usr/bin/java --add-opens java.base/java.nio=ALL-UNNAMED -jar /home/ec2-user/metabase.jar',
             'Restart=always',
             '',
             '[Install]',
             'WantedBy=multi-user.target',
             'EOF',
-            
-            // Download and configure Metabase
+
+            // Descargar Metabase
             `wget https://downloads.metabase.com/${METABASE_VERSION}/metabase.jar -O /home/ec2-user/metabase.jar`,
             'chown ec2-user:ec2-user /home/ec2-user/metabase.jar',
             'chmod 755 /home/ec2-user/metabase.jar',
-            
-            // Enable and start Metabase service
+
+            // Iniciar el servicio
             'systemctl daemon-reload',
             'systemctl enable metabase',
             'systemctl start metabase'

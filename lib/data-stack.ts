@@ -22,13 +22,17 @@ export class DataStack extends cdk.Stack {
             {
                 secretName: "AuroraDBCredentials",
                 generateSecretString: {
-                    secretStringTemplate: JSON.stringify({ username: "metabase" }),
+                    secretStringTemplate: JSON.stringify({
+                        username: "metabase",
+                        dbname: "metabase",
+                        port: 5432,
+                        engine: "postgresql"
+                    }),
                     generateStringKey: "password",
                     excludeCharacters: '"@/\\',
                 },
                 removalPolicy: cdk.RemovalPolicy.DESTROY,
-            },
-            
+            }
         );
 
         const parameterGroup = new rds.ParameterGroup(this, "AuroraServerlessParamGroup", {

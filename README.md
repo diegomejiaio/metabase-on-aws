@@ -1,14 +1,32 @@
-# Welcome to your CDK TypeScript project
+# Metabase on AWS CDK
 
-This is a blank project for CDK development with TypeScript.
+This project deploys Metabase Open Source in a cost-effective way on AWS using CDK (Cloud Development Kit) with TypeScript.
 
-The `cdk.json` file tells the CDK Toolkit how to execute your app.
+## Architecture
 
-## Useful commands
+The infrastructure consists of:
 
-* `npm run build`   compile typescript to js
-* `npm run watch`   watch for changes and compile
-* `npm run test`    perform the jest unit tests
-* `npx cdk deploy`  deploy this stack to your default AWS account/region
-* `npx cdk diff`    compare deployed stack with current state
-* `npx cdk synth`   emits the synthesized CloudFormation template
+- **Compute Layer**: Single EC2 t4g.medium Spot Instance running Metabase
+- **Database Layer**: Aurora Serverless v1 PostgreSQL
+- **Networking**: VPC with public and private subnets in 2 AZs
+
+### Cost Optimization Features
+- Uses ARM-based EC2 Spot instances (t4g.medium) for cost savings
+- Aurora Serverless auto-scaling (2-2 ACU) with auto-pause after 10 minutes
+- Estimated monthly cost: ~$30-40 USD (may vary by region and usage)
+
+## Prerequisites
+
+- AWS CLI configured
+- Node.js >= 14.x
+- AWS CDK CLI installed (`npm install -g aws-cdk`)
+- SSH key pair in your AWS account named 'diego-mac-keys' (or modify the key name in compute-stack.ts)
+
+## Stack Components
+
+1. **NetworkingStack**: VPC and network infrastructure
+2. **DataStack**: Aurora Serverless PostgreSQL database
+3. **ComputeStack**: EC2 Spot instance with Metabase
+
+## Deployment
+
